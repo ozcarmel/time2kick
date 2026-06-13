@@ -19,7 +19,9 @@ import type { Fixture, Group } from "./types";
 import {
   googleCalendarUrl,
   groupFixturesByDate,
+  groupsWithComputedStandings,
   hasFixtureStarted,
+  heroMatchFixtures,
   icsEvent,
   isLiveMatchFixture,
   isPastOrFinalFixture,
@@ -58,7 +60,7 @@ const gmtTimeFormatter = new Intl.DateTimeFormat("en-GB", {
 
 const FAVORITE_TEAMS_KEY = "time2kick.favoriteTeams";
 const PUBLIC_ASSET_BASE_URL = import.meta.env?.BASE_URL ?? "/";
-const APP_VERSION = "2026-06-14-live-match-status";
+const APP_VERSION = "2026-06-14-two-hero-boxes-standings";
 
 function publicAsset(path: string) {
   return `${PUBLIC_ASSET_BASE_URL}${path.replace(/^\/+/, "")}`;
@@ -113,6 +115,7 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
   const groupStageFixtures = useMemo(() => scheduleFixtures.filter((fixture) => Boolean(fixture.group)), [scheduleFixtures]);
   const knockoutFixtures = useMemo(() => scheduleFixtures.filter((fixture) => !fixture.group), [scheduleFixtures]);
   const finalFixtures = useMemo(() => scheduleFixtures.filter((fixture) => /final/i.test(fixture.stage)), [scheduleFixtures]);
+  const standingsGroups = useMemo(() => groupsWithComputedStandings(snapshot.groups, scheduleFixtures), [snapshot.groups, scheduleFixtures]);
   const favoriteFixtures = useMemo(
     () => scheduleFixtures.filter((fixture) => fixtureMatchesFavorites(fixture, favoriteTeams)),
     [favoriteTeams, scheduleFixtures],
@@ -120,8 +123,8 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
   const kickoffCounts = useMemo(() => countFixturesByKickoff(scheduleFixtures), [scheduleFixtures]);
 
   const groupNames = useMemo(
-    () => ["All", ...snapshot.groups.map((group) => group.name)],
-    [snapshot.groups],
+    () => ["All", ...standingsGroups.map((group) => group.name)],
+    [standingsGroups],
   );
 
   const filteredFixtures = useMemo(() => {
@@ -148,15 +151,7 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
   }, [favoriteTeams, favoritesOnly, groupFilter, query, scheduleFixtures]);
 
   const fixturesByDate = useMemo(() => groupFixturesByDate(filteredFixtures), [filteredFixtures]);
-  const liveFixtures = useMemo(() => filteredFixtures.filter((fixture) => isLiveMatchFixture(fixture)), [filteredFixtures]);
-  const filteredUpcomingFixtures = upcomingFixtures(filteredFixtures);
-  const nextFixtures = (
-    liveFixtures.length > 0
-      ? liveFixtures
-      : filteredUpcomingFixtures.length > 0
-        ? filteredUpcomingFixtures
-        : upcomingFixtures(scheduleFixtures)
-  ).slice(0, 2);
+  const heroFixtures = useMemo(() => heroMatchFixtures(scheduleFixtures), [scheduleFixtures]);
 
   if (route === "/draw") {
     return <DrawPage snapshot={snapshot} />;
@@ -180,8 +175,8 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
             <img src={publicAsset("time2kick-logo-vertical.png")} alt="Time2Kick World Cup Schedule" />
           </div>
           <div className="next-match-stack" aria-label="Next two matches">
-            {nextFixtures.length > 0 ? (
-              nextFixtures.map((fixture) => <NextMatchCard fixture={fixture} key={fixture.id} />)
+            {heroFixtures.length > 0 ? (
+              heroFixtures.map((fixture) => <NextMatchCard fixture={fixture} key={fixture.id} />)
             ) : (
               <aside className="next-match-panel" aria-label="Next match">
                 <span className="panel-label">Next match</span>
@@ -217,7 +212,7 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
         </div>
         {groupsVisible && (
           <div className="group-grid" id="groups-grid">
-            {snapshot.groups.map((group) => (
+            {standingsGroups.map((group) => (
               <article className="group-card" key={group.id}>
                 <div className="group-title">
                   <span>{group.id}</span>
@@ -225,8 +220,16 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
                 </div>
                 {group.standings.map((standing) => (
                   <div className="team-row" key={standing.team.providerId}>
+                    <span className="team-rank">{standing.rank}</span>
                     <TeamLogo teamName={standing.team.name} logoUrl={standing.team.logoUrl} />
-                    <strong>{standing.team.name}</strong>
+                    <span className="team-row-main">
+                      <strong>{standing.team.name}</strong>
+                      <small>{standing.played > 0 ? `${standing.won}-${standing.drawn}-${standing.lost} · GD ${formatGoalDifference(standing.goalDifference)}` : "0 played"}</small>
+                    </span>
+                    <span className="team-points">
+                      <strong>{standing.points}</strong>
+                      <small>pts</small>
+                    </span>
                     <FavoriteButton
                       isFavorite={favoriteTeams.has(standing.team.name)}
                       teamName={standing.team.name}
@@ -366,13 +369,15 @@ function NextMatchCard({ fixture }: { fixture: Fixture }) {
 }
 
 function DrawPage({ snapshot }: { snapshot: TournamentSnapshotReady }) {
+  const scheduleFixtures = useMemo(() => visibleScheduleFixtures(snapshot.fixtures), [snapshot.fixtures]);
+  const standingsGroups = useMemo(() => groupsWithComputedStandings(snapshot.groups, scheduleFixtures), [snapshot.groups, scheduleFixtures]);
   const knockoutFixtures = useMemo(
     () => snapshot.fixtures.filter((fixture) => fixture.stage === "Round of 32"),
     [snapshot.fixtures],
   );
   const groupsById = useMemo(
-    () => new Map(snapshot.groups.map((group) => [group.id.toUpperCase(), group])),
-    [snapshot.groups],
+    () => new Map(standingsGroups.map((group) => [group.id.toUpperCase(), group])),
+    [standingsGroups],
   );
 
   return (
@@ -709,6 +714,10 @@ function watchWindowLabel(kickoffUtc: string) {
   if (isWeekday && hour >= 9 && hour < 17) return { className: "work", label: "Work hours" };
   if (hour >= 18 && hour < 23) return { className: "prime", label: "Prime time" };
   return { className: "good", label: "Good time" };
+}
+
+function formatGoalDifference(goalDifference: number) {
+  return goalDifference > 0 ? `+${goalDifference}` : String(goalDifference);
 }
 
 function upcomingFixtures(fixtures: Fixture[], now = Date.now()) {

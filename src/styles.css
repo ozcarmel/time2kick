@@ -820,12 +820,25 @@ input:focus-visible {
 
 .team-row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 36px;
-  gap: 9px;
+  grid-template-columns: 24px 28px minmax(0, 1fr) 42px 36px;
+  gap: 8px;
   align-items: center;
-  min-height: 40px;
-  padding: 7px 12px;
+  min-height: 46px;
+  padding: 7px 10px;
   border-top: 1px solid var(--line);
+}
+
+.team-rank {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: #344054;
+  background: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
 .team-row .team-logo,
@@ -835,12 +848,47 @@ input:focus-visible {
   height: 26px;
 }
 
-.team-row strong {
+.team-row-main {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.team-row-main strong {
   min-width: 0;
   font-size: 0.9rem;
   line-height: 1.25;
   overflow-wrap: normal;
   word-break: normal;
+}
+
+.team-row-main small {
+  color: #667085;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.team-points {
+  display: grid;
+  gap: 1px;
+  justify-items: end;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.team-points strong {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.team-points small {
+  color: #667085;
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .favorite-button {

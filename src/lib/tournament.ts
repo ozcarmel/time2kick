@@ -1,4 +1,4 @@
-import type { Fixture } from "../types";
+import type { Fixture, Group, Standing } from "../types";
 
 export type QualifyingPosition = "winner" | "runner-up" | "third" | "unknown";
 
@@ -19,11 +19,101 @@ export function visibleScheduleFixtures(fixtures: Fixture[]) {
   return fixtures.filter((fixture) => fixture.group || fixtureHasQualifiedKnockoutTeam(fixture));
 }
 
+export function groupsWithComputedStandings(groups: Group[], fixtures: Fixture[]): Group[] {
+  const standingsByGroup = new Map<string, Map<string, Standing>>();
+
+  groups.forEach((group) => {
+    standingsByGroup.set(
+      group.name,
+      new Map(
+        group.standings.map((standing) => [
+          standing.team.name,
+          {
+            ...standing,
+            rank: 0,
+            played: 0,
+            won: 0,
+            drawn: 0,
+            lost: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalDifference: 0,
+            points: 0,
+          },
+        ]),
+      ),
+    );
+  });
+
+  fixtures
+    .filter((fixture) => fixture.status === "final" && fixture.group && hasNumericScore(fixture))
+    .forEach((fixture) => {
+      const groupStandings = standingsByGroup.get(fixture.group);
+      const home = groupStandings?.get(fixture.homeTeam.name);
+      const away = groupStandings?.get(fixture.awayTeam.name);
+      const homeScore = fixture.score?.home;
+      const awayScore = fixture.score?.away;
+      if (!home || !away || typeof homeScore !== "number" || typeof awayScore !== "number") return;
+
+      applyResult(home, homeScore, awayScore);
+      applyResult(away, awayScore, homeScore);
+    });
+
+  return groups.map((group) => {
+    const standings = [...(standingsByGroup.get(group.name)?.values() ?? group.standings)]
+      .sort(compareStandings)
+      .map((standing, index) => ({ ...standing, rank: index + 1 }));
+
+    return { ...group, standings };
+  });
+}
+
 export function nextUpcomingFixture(fixtures: Fixture[], now = Date.now()) {
   return fixtures
     .filter((fixture) => !hasFixtureStarted(fixture, now))
     .slice()
     .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime())[0];
+}
+
+export function heroMatchFixtures(fixtures: Fixture[], now = Date.now(), limit = 2) {
+  const liveFixtures = fixtures
+    .filter((fixture) => isLiveMatchFixture(fixture, now))
+    .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime());
+  const upcomingFixtures = fixtures
+    .filter((fixture) => !hasFixtureStarted(fixture, now))
+    .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime());
+
+  return [...liveFixtures, ...upcomingFixtures].slice(0, limit);
+}
+
+function hasNumericScore(fixture: Fixture) {
+  return Number.isFinite(fixture.score?.home) && Number.isFinite(fixture.score?.away);
+}
+
+function applyResult(standing: Standing, goalsFor: number, goalsAgainst: number) {
+  standing.played += 1;
+  standing.goalsFor += goalsFor;
+  standing.goalsAgainst += goalsAgainst;
+  standing.goalDifference = standing.goalsFor - standing.goalsAgainst;
+
+  if (goalsFor > goalsAgainst) {
+    standing.won += 1;
+    standing.points += 3;
+  } else if (goalsFor === goalsAgainst) {
+    standing.drawn += 1;
+    standing.points += 1;
+  } else {
+    standing.lost += 1;
+  }
+}
+
+function compareStandings(a: Standing, b: Standing) {
+  return (
+    b.points - a.points ||
+    b.goalDifference - a.goalDifference ||
+    b.goalsFor - a.goalsFor ||
+    a.team.name.localeCompare(b.team.name)
+  );
 }
 
 export function isPastOrFinalFixture(fixture: Fixture, now = Date.now()) {

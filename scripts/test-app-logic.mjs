@@ -7,7 +7,9 @@ import {
   calendarEventTitle,
   googleCalendarUrl,
   groupFixturesByDate,
+  groupsWithComputedStandings,
   hasFixtureStarted,
+  heroMatchFixtures,
   icsEvent,
   isLiveMatchFixture,
   isPastOrFinalFixture,
@@ -55,6 +57,61 @@ test("started live games are not upcoming calendar targets", () => {
   assert.equal(hasFixtureStarted(live, Date.parse("2026-06-13T22:45:00.000Z")), true);
   assert.equal(isLiveMatchFixture(live, Date.parse("2026-06-13T22:45:00.000Z")), true);
   assert.equal(nextUpcomingFixture([live, future], Date.parse("2026-06-13T22:45:00.000Z"))?.id, "future");
+});
+
+test("heroMatchFixtures always fills two boxes with live matches first", () => {
+  const now = Date.parse("2026-06-13T22:45:00.000Z");
+  const live = fixture("live", brazil(), morocco(), "2026-06-13T22:00:00.000Z", {
+    status: "live",
+    score: { home: 1, away: 1 },
+  });
+  const live2 = fixture("live-2", team("USA"), team("Paraguay"), "2026-06-13T22:15:00.000Z", {
+    status: "live",
+    score: { home: 0, away: 0 },
+  });
+  const future1 = fixture("future-1", canada, bosnia, "2026-06-14T19:00:00.000Z");
+  const future2 = fixture("future-2", mexico, southAfrica, "2026-06-14T22:00:00.000Z");
+
+  assert.deepEqual(heroMatchFixtures([future2, future1], now).map((item) => item.id), ["future-1", "future-2"]);
+  assert.deepEqual(heroMatchFixtures([future2, live, future1], now).map((item) => item.id), ["live", "future-1"]);
+  assert.deepEqual(heroMatchFixtures([future2, live2, live, future1], now).map((item) => item.id), ["live", "live-2"]);
+});
+
+test("groupsWithComputedStandings sorts by real final-match points", () => {
+  const group = {
+    id: "A",
+    name: "Group A",
+    standings: [mexico, southAfrica, czechRepublic].map((item, index) => ({
+      team: item,
+      rank: index + 1,
+      played: 0,
+      won: 0,
+      drawn: 0,
+      lost: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      goalDifference: 0,
+      points: 0,
+    })),
+  };
+  const groups = groupsWithComputedStandings(
+    [group],
+    [
+      fixture("mex-sa", mexico, southAfrica, "2026-06-11T19:00:00.000Z", {
+        status: "final",
+        score: { home: 2, away: 0 },
+      }),
+    ],
+  );
+
+  assert.deepEqual(
+    groups[0].standings.map((standing) => [standing.rank, standing.team.name, standing.points, standing.goalDifference]),
+    [
+      [1, "Mexico", 3, 2],
+      [2, "Czech Republic", 0, 0],
+      [3, "South Africa", 0, -2],
+    ],
+  );
 });
 
 test("visibleScheduleFixtures hides unresolved knockout placeholders but keeps qualified knockout games", () => {
