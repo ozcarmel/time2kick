@@ -55,6 +55,11 @@ const gmtTimeFormatter = new Intl.DateTimeFormat("en-GB", {
 });
 
 const FAVORITE_TEAMS_KEY = "time2kick.favoriteTeams";
+const PUBLIC_ASSET_BASE_URL = import.meta.env?.BASE_URL ?? "/";
+
+function publicAsset(path: string) {
+  return `${PUBLIC_ASSET_BASE_URL}${path.replace(/^\/+/, "")}`;
+}
 
 function App() {
   const [snapshot, setSnapshot] = useState<TournamentSnapshot | null>(null);
@@ -162,7 +167,7 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
 
         <section className="hero-content home-hero-content" aria-label="Next match">
           <div className="hero-logo-lockup">
-            <img src="/time2kick-logo-vertical.png" alt="Time2Kick World Cup Schedule" />
+            <img src={publicAsset("time2kick-logo-vertical.png")} alt="Time2Kick World Cup Schedule" />
           </div>
           <div className="next-match-stack" aria-label="Next two matches">
             {nextFixtures.length > 0 ? (
@@ -361,7 +366,7 @@ function DrawPage({ snapshot }: { snapshot: TournamentSnapshotReady }) {
       <header className="schedule-hero draw-hero">
         <nav className="topbar" aria-label="Primary">
           <a className="brand-mark" href="#/" aria-label="Time2Kick schedule">
-            <img src="/time2kick-logo-hero.png" alt="Time2Kick" />
+            <img src={publicAsset("time2kick-logo-hero.png")} alt="Time2Kick" />
           </a>
           <div className="topbar-actions">
             <a className="nav-link" href="#/">

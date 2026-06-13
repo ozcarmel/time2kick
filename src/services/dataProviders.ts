@@ -45,14 +45,38 @@ export async function loadTournamentSnapshot(fetcher = fetch, retries = 2, retry
 }
 
 async function fetchTournamentSnapshot(fetcher: typeof fetch): Promise<TournamentSnapshot> {
-  const response = await fetcher("/api/worldcup/snapshot");
-  const payload = (await response.json()) as TournamentSnapshot;
+  let response: Response;
+  try {
+    response = await fetcher("/api/worldcup/snapshot");
+    return await readSnapshotResponse(response);
+  } catch (error) {
+    if (!shouldTryStaticSnapshot(error)) {
+      throw error;
+    }
+  }
+
+  response = await fetcher(staticSnapshotUrl());
+  return readSnapshotResponse(response);
+}
+
+async function readSnapshotResponse(response: Response): Promise<TournamentSnapshot> {
+  const text = await response.text();
+  const payload = JSON.parse(text) as TournamentSnapshot;
 
   if (!response.ok && payload.status !== "configuration_required" && payload.status !== "provider_error") {
     throw new Error("World Cup data provider failed without a readable status.");
   }
 
   return payload;
+}
+
+function shouldTryStaticSnapshot(error: unknown) {
+  return error instanceof SyntaxError || error instanceof TypeError || /Unexpected token|not valid JSON|Failed to fetch/i.test(String(error));
+}
+
+function staticSnapshotUrl() {
+  const baseUrl = import.meta.env?.BASE_URL ?? "/";
+  return `${baseUrl}worldcup-snapshot.json`;
 }
 
 function wait(ms: number) {

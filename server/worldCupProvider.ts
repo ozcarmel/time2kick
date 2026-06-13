@@ -185,7 +185,7 @@ export async function handleWorldCupApi(req: IncomingMessage, res: ServerRespons
   }
 }
 
-async function getSnapshot(): Promise<Snapshot | ProviderUnavailable> {
+export async function getSnapshot(): Promise<Snapshot | ProviderUnavailable> {
   const apiKey = getApiKey();
   if (!apiKey) {
     return fetchOpenFootballSnapshot();

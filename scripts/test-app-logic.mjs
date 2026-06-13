@@ -123,6 +123,34 @@ test("loadTournamentSnapshot retries short communication failures", async () => 
   assert.equal(snapshot.status, "ready");
 });
 
+test("loadTournamentSnapshot falls back to static snapshot when static hosting returns HTML for the API", async () => {
+  const payload = {
+    status: "ready",
+    provider: "openfootball",
+    providerLabel: "Static World Cup schedule",
+    liveData: false,
+    oddsAvailable: false,
+    groups: [],
+    fixtures: [],
+    hostCities: [],
+    lastSyncedAt: "2026-06-12T00:00:00.000Z",
+  };
+  const requestedUrls = [];
+  const fetcher = async (url) => {
+    requestedUrls.push(url);
+    if (url === "/api/worldcup/snapshot") {
+      return new Response("<!DOCTYPE html><html></html>", { status: 200 });
+    }
+    return new Response(JSON.stringify(payload), { status: 200 });
+  };
+
+  const snapshot = await loadTournamentSnapshot(fetcher, 0, 0);
+
+  assert.deepEqual(requestedUrls, ["/api/worldcup/snapshot", "/worldcup-snapshot.json"]);
+  assert.equal(snapshot.status, "ready");
+  assert.equal(snapshot.providerLabel, "Static World Cup schedule");
+});
+
 function team(name, flagCode = "") {
   return {
     providerId: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
