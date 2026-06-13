@@ -683,7 +683,18 @@ function finalScoreOverride(team1: string, team2: string, date: string): [number
     return [2, 0];
   }
 
+  if (date === "2026-06-13" && sameMatchup(team1, team2, "Qatar", "Switzerland")) {
+    return [1, 1];
+  }
+
   return undefined;
+}
+
+function sameMatchup(team1: string, team2: string, expected1: string, expected2: string) {
+  return (
+    (team1 === expected1 && team2 === expected2) ||
+    (team1 === expected2 && team2 === expected1)
+  );
 }
 
 function openFootballTeam(name: string, group?: string): Team {

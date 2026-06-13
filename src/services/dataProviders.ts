@@ -26,6 +26,7 @@ export type TournamentSnapshotUnavailable = {
 };
 
 export type TournamentSnapshot = TournamentSnapshotReady | TournamentSnapshotUnavailable;
+const STATIC_SNAPSHOT_VERSION = "2026-06-14-qatar-switzerland-1-1";
 
 export async function loadTournamentSnapshot(fetcher = fetch, retries = 2, retryDelayMs = 350): Promise<TournamentSnapshot> {
   let lastError: unknown;
@@ -84,7 +85,7 @@ function shouldTryStaticSnapshot(error: unknown) {
 
 function staticSnapshotUrl() {
   const baseUrl = import.meta.env?.BASE_URL ?? "/";
-  return `${baseUrl}worldcup-snapshot.json`;
+  return `${baseUrl}worldcup-snapshot.json?v=${STATIC_SNAPSHOT_VERSION}`;
 }
 
 function shouldLoadStaticSnapshotFirst() {

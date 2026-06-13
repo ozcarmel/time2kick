@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   calendarEventDescription,
@@ -146,9 +147,23 @@ test("loadTournamentSnapshot falls back to static snapshot when static hosting r
 
   const snapshot = await loadTournamentSnapshot(fetcher, 0, 0);
 
-  assert.deepEqual(requestedUrls, ["/api/worldcup/snapshot", "/worldcup-snapshot.json"]);
+  assert.deepEqual(requestedUrls, ["/api/worldcup/snapshot", "/worldcup-snapshot.json?v=2026-06-14-qatar-switzerland-1-1"]);
   assert.equal(snapshot.status, "ready");
   assert.equal(snapshot.providerLabel, "Static World Cup schedule");
+});
+
+test("static snapshot includes Qatar vs Switzerland final result", async () => {
+  const snapshot = JSON.parse(await readFile("public/worldcup-snapshot.json", "utf8"));
+  const fixture = snapshot.fixtures.find(
+    (item) =>
+      item.kickoffUtc.startsWith("2026-06-13") &&
+      new Set([item.homeTeam.name, item.awayTeam.name]).has("Qatar") &&
+      new Set([item.homeTeam.name, item.awayTeam.name]).has("Switzerland"),
+  );
+
+  assert.ok(fixture, "Qatar vs Switzerland fixture should exist");
+  assert.equal(fixture.status, "final");
+  assert.deepEqual(fixture.score, { home: 1, away: 1 });
 });
 
 function team(name, flagCode = "") {
