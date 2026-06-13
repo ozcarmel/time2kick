@@ -224,11 +224,9 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
                     <TeamLogo teamName={standing.team.name} logoUrl={standing.team.logoUrl} />
                     <span className="team-row-main">
                       <strong>{standing.team.name}</strong>
-                      <small>{standing.played > 0 ? `${standing.won}-${standing.drawn}-${standing.lost} · GD ${formatGoalDifference(standing.goalDifference)}` : "0 played"}</small>
                     </span>
                     <span className="team-points">
                       <strong>{standing.points}</strong>
-                      <small>pts</small>
                     </span>
                     <FavoriteButton
                       isFavorite={favoriteTeams.has(standing.team.name)}
@@ -714,10 +712,6 @@ function watchWindowLabel(kickoffUtc: string) {
   if (isWeekday && hour >= 9 && hour < 17) return { className: "work", label: "Work hours" };
   if (hour >= 18 && hour < 23) return { className: "prime", label: "Prime time" };
   return { className: "good", label: "Good time" };
-}
-
-function formatGoalDifference(goalDifference: number) {
-  return goalDifference > 0 ? `+${goalDifference}` : String(goalDifference);
 }
 
 function upcomingFixtures(fixtures: Fixture[], now = Date.now()) {

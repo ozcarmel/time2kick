@@ -850,8 +850,6 @@ input:focus-visible {
 
 .team-row-main {
   min-width: 0;
-  display: grid;
-  gap: 2px;
 }
 
 .team-row-main strong {
@@ -862,18 +860,10 @@ input:focus-visible {
   word-break: normal;
 }
 
-.team-row-main small {
-  color: #667085;
-  font-size: 0.7rem;
-  font-weight: 800;
-  line-height: 1.05;
-  white-space: nowrap;
-}
-
 .team-points {
-  display: grid;
-  gap: 1px;
-  justify-items: end;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
@@ -881,14 +871,6 @@ input:focus-visible {
 .team-points strong {
   font-size: 0.95rem;
   line-height: 1;
-}
-
-.team-points small {
-  color: #667085;
-  font-size: 0.62rem;
-  font-weight: 900;
-  line-height: 1;
-  text-transform: uppercase;
 }
 
 .favorite-button {
