@@ -26,7 +26,7 @@ export type TournamentSnapshotUnavailable = {
 };
 
 export type TournamentSnapshot = TournamentSnapshotReady | TournamentSnapshotUnavailable;
-const STATIC_SNAPSHOT_VERSION = "2026-06-14-qatar-switzerland-1-1";
+const STATIC_SNAPSHOT_VERSION = "2026-06-14-live-brazil-morocco-1-1";
 
 export async function loadTournamentSnapshot(fetcher = fetch, retries = 2, retryDelayMs = 350): Promise<TournamentSnapshot> {
   let lastError: unknown;

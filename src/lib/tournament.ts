@@ -21,13 +21,21 @@ export function visibleScheduleFixtures(fixtures: Fixture[]) {
 
 export function nextUpcomingFixture(fixtures: Fixture[], now = Date.now()) {
   return fixtures
-    .filter((fixture) => !isPastOrFinalFixture(fixture, now))
+    .filter((fixture) => !hasFixtureStarted(fixture, now))
     .slice()
     .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime())[0];
 }
 
 export function isPastOrFinalFixture(fixture: Fixture, now = Date.now()) {
   return fixture.status === "final" || new Date(fixture.kickoffUtc).getTime() + 2 * 60 * 60 * 1000 < now;
+}
+
+export function hasFixtureStarted(fixture: Fixture, now = Date.now()) {
+  return new Date(fixture.kickoffUtc).getTime() <= now || fixture.status === "live" || fixture.status === "final";
+}
+
+export function isLiveMatchFixture(fixture: Fixture, now = Date.now()) {
+  return fixture.status === "live" || (hasFixtureStarted(fixture, now) && !isPastOrFinalFixture(fixture, now));
 }
 
 export function fixtureHasQualifiedKnockoutTeam(fixture: Fixture) {

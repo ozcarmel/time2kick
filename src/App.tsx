@@ -19,7 +19,9 @@ import type { Fixture, Group } from "./types";
 import {
   googleCalendarUrl,
   groupFixturesByDate,
+  hasFixtureStarted,
   icsEvent,
+  isLiveMatchFixture,
   isPastOrFinalFixture,
   qualifierClass,
   qualifierLabel,
@@ -56,7 +58,7 @@ const gmtTimeFormatter = new Intl.DateTimeFormat("en-GB", {
 
 const FAVORITE_TEAMS_KEY = "time2kick.favoriteTeams";
 const PUBLIC_ASSET_BASE_URL = import.meta.env?.BASE_URL ?? "/";
-const APP_VERSION = "2026-06-13-pages-static-first";
+const APP_VERSION = "2026-06-14-live-match-status";
 
 function publicAsset(path: string) {
   return `${PUBLIC_ASSET_BASE_URL}${path.replace(/^\/+/, "")}`;
@@ -146,8 +148,15 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
   }, [favoriteTeams, favoritesOnly, groupFilter, query, scheduleFixtures]);
 
   const fixturesByDate = useMemo(() => groupFixturesByDate(filteredFixtures), [filteredFixtures]);
+  const liveFixtures = useMemo(() => filteredFixtures.filter((fixture) => isLiveMatchFixture(fixture)), [filteredFixtures]);
   const filteredUpcomingFixtures = upcomingFixtures(filteredFixtures);
-  const nextFixtures = (filteredUpcomingFixtures.length > 0 ? filteredUpcomingFixtures : upcomingFixtures(scheduleFixtures)).slice(0, 2);
+  const nextFixtures = (
+    liveFixtures.length > 0
+      ? liveFixtures
+      : filteredUpcomingFixtures.length > 0
+        ? filteredUpcomingFixtures
+        : upcomingFixtures(scheduleFixtures)
+  ).slice(0, 2);
 
   if (route === "/draw") {
     return <DrawPage snapshot={snapshot} />;
@@ -333,15 +342,18 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
 }
 
 function NextMatchCard({ fixture }: { fixture: Fixture }) {
+  const isLive = isLiveMatchFixture(fixture);
+  const hasStarted = hasFixtureStarted(fixture);
+
   return (
-    <aside className="next-match-panel" aria-label="Next match">
-      <span className="panel-label">Next match</span>
+    <aside className={`next-match-panel ${isLive ? "is-live" : ""}`} aria-label={isLive ? "Live match" : "Next match"}>
+      <span className="panel-label">{isLive ? "Live match" : "Next match"}</span>
       <strong>
         {fixture.homeTeam.name} vs {fixture.awayTeam.name}
       </strong>
       <small>{fullDateFormatter.format(new Date(fixture.kickoffUtc))}</small>
       <small className="gmt-time">{gmtTimeFormatter.format(new Date(fixture.kickoffUtc))} GMT</small>
-      {isPastOrFinalFixture(fixture) ? (
+      {hasStarted ? (
         <ScoreBadge fixture={fixture} />
       ) : (
         <a className="panel-calendar-link" href={googleCalendarUrl(fixture)} target="_blank" rel="noreferrer">
@@ -487,7 +499,8 @@ function GroupPreview({ group, position }: { group: Group | undefined; position:
 
 function FixtureRow({ concurrentCount, fixture }: { concurrentCount: number; fixture: Fixture }) {
   const googleUrl = googleCalendarUrl(fixture);
-  const showResult = isPastOrFinalFixture(fixture);
+  const hasStarted = hasFixtureStarted(fixture);
+  const showResult = hasStarted || isPastOrFinalFixture(fixture);
   const watchLabel = watchWindowLabel(fixture.kickoffUtc);
 
   return (
@@ -562,11 +575,13 @@ function FavoriteButton({
 
 function ScoreBadge({ fixture }: { fixture: Fixture }) {
   const hasScore = fixture.score?.home !== null && fixture.score?.away !== null;
+  const isLive = isLiveMatchFixture(fixture);
+  const label = isLive ? "Live" : "Final";
 
   return (
-    <div className="score-badge" aria-label={`Final result ${fixture.homeTeam.name} ${fixture.score?.home ?? ""} ${fixture.awayTeam.name} ${fixture.score?.away ?? ""}`}>
-      <span>Final</span>
-      <strong>{hasScore ? `${fixture.score?.home} - ${fixture.score?.away}` : "Result pending"}</strong>
+    <div className={`score-badge ${isLive ? "is-live" : ""}`} aria-label={`${label} score ${fixture.homeTeam.name} ${fixture.score?.home ?? ""} ${fixture.awayTeam.name} ${fixture.score?.away ?? ""}`}>
+      <span>{label}</span>
+      <strong>{hasScore ? `${fixture.score?.home} - ${fixture.score?.away}` : `${label} score pending`}</strong>
     </div>
   );
 }
@@ -698,7 +713,7 @@ function watchWindowLabel(kickoffUtc: string) {
 
 function upcomingFixtures(fixtures: Fixture[], now = Date.now()) {
   return fixtures
-    .filter((fixture) => !isPastOrFinalFixture(fixture, now))
+    .filter((fixture) => !hasFixtureStarted(fixture, now))
     .slice()
     .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime());
 }

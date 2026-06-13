@@ -345,6 +345,14 @@ input:focus-visible {
   box-shadow: var(--shadow);
 }
 
+.next-match-panel.is-live {
+  border-top-color: #ef4444;
+}
+
+.next-match-panel.is-live .panel-label {
+  color: #b42318;
+}
+
 .next-match-panel strong,
 .next-match-panel small {
   display: block;
@@ -755,6 +763,16 @@ input:focus-visible {
   font-size: 1.06rem;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
+}
+
+.score-badge.is-live {
+  border-color: rgba(239, 68, 68, 0.34);
+  color: #b42318;
+  background: #fff1f2;
+}
+
+.score-badge.is-live span {
+  color: #b42318;
 }
 
 .group-grid {

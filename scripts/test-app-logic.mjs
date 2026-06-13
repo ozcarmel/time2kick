@@ -7,7 +7,9 @@ import {
   calendarEventTitle,
   googleCalendarUrl,
   groupFixturesByDate,
+  hasFixtureStarted,
   icsEvent,
+  isLiveMatchFixture,
   isPastOrFinalFixture,
   nextUpcomingFixture,
   qualifierClass,
@@ -41,6 +43,18 @@ test("ended games are final and should not be treated as calendar targets", () =
   });
 
   assert.equal(isPastOrFinalFixture(ended, Date.parse("2026-06-12T12:00:00.000Z")), true);
+});
+
+test("started live games are not upcoming calendar targets", () => {
+  const live = fixture("live", brazil(), morocco(), "2026-06-13T22:00:00.000Z", {
+    status: "live",
+    score: { home: 1, away: 1 },
+  });
+  const future = fixture("future", canada, bosnia, "2026-06-14T19:00:00.000Z");
+
+  assert.equal(hasFixtureStarted(live, Date.parse("2026-06-13T22:45:00.000Z")), true);
+  assert.equal(isLiveMatchFixture(live, Date.parse("2026-06-13T22:45:00.000Z")), true);
+  assert.equal(nextUpcomingFixture([live, future], Date.parse("2026-06-13T22:45:00.000Z"))?.id, "future");
 });
 
 test("visibleScheduleFixtures hides unresolved knockout placeholders but keeps qualified knockout games", () => {
@@ -147,7 +161,7 @@ test("loadTournamentSnapshot falls back to static snapshot when static hosting r
 
   const snapshot = await loadTournamentSnapshot(fetcher, 0, 0);
 
-  assert.deepEqual(requestedUrls, ["/api/worldcup/snapshot", "/worldcup-snapshot.json?v=2026-06-14-qatar-switzerland-1-1"]);
+  assert.deepEqual(requestedUrls, ["/api/worldcup/snapshot", "/worldcup-snapshot.json?v=2026-06-14-live-brazil-morocco-1-1"]);
   assert.equal(snapshot.status, "ready");
   assert.equal(snapshot.providerLabel, "Static World Cup schedule");
 });
@@ -165,6 +179,28 @@ test("static snapshot includes Qatar vs Switzerland final result", async () => {
   assert.equal(fixture.status, "final");
   assert.deepEqual(fixture.score, { home: 1, away: 1 });
 });
+
+test("static snapshot includes Brazil vs Morocco live score", async () => {
+  const snapshot = JSON.parse(await readFile("public/worldcup-snapshot.json", "utf8"));
+  const fixture = snapshot.fixtures.find(
+    (item) =>
+      item.kickoffUtc.startsWith("2026-06-13") &&
+      new Set([item.homeTeam.name, item.awayTeam.name]).has("Brazil") &&
+      new Set([item.homeTeam.name, item.awayTeam.name]).has("Morocco"),
+  );
+
+  assert.ok(fixture, "Brazil vs Morocco fixture should exist");
+  assert.equal(fixture.status, "live");
+  assert.deepEqual(fixture.score, { home: 1, away: 1 });
+});
+
+function brazil() {
+  return team("Brazil", "br");
+}
+
+function morocco() {
+  return team("Morocco", "ma");
+}
 
 function team(name, flagCode = "") {
   return {
