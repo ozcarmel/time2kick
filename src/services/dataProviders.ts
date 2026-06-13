@@ -45,6 +45,10 @@ export async function loadTournamentSnapshot(fetcher = fetch, retries = 2, retry
 }
 
 async function fetchTournamentSnapshot(fetcher: typeof fetch): Promise<TournamentSnapshot> {
+  if (shouldLoadStaticSnapshotFirst()) {
+    return fetchStaticSnapshot(fetcher);
+  }
+
   let response: Response;
   try {
     response = await fetcher("/api/worldcup/snapshot");
@@ -55,7 +59,11 @@ async function fetchTournamentSnapshot(fetcher: typeof fetch): Promise<Tournamen
     }
   }
 
-  response = await fetcher(staticSnapshotUrl());
+  return fetchStaticSnapshot(fetcher);
+}
+
+async function fetchStaticSnapshot(fetcher: typeof fetch): Promise<TournamentSnapshot> {
+  const response = await fetcher(staticSnapshotUrl());
   return readSnapshotResponse(response);
 }
 
@@ -77,6 +85,10 @@ function shouldTryStaticSnapshot(error: unknown) {
 function staticSnapshotUrl() {
   const baseUrl = import.meta.env?.BASE_URL ?? "/";
   return `${baseUrl}worldcup-snapshot.json`;
+}
+
+function shouldLoadStaticSnapshotFirst() {
+  return (import.meta.env?.BASE_URL ?? "/") !== "/";
 }
 
 function wait(ms: number) {

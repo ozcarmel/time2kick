@@ -56,6 +56,7 @@ const gmtTimeFormatter = new Intl.DateTimeFormat("en-GB", {
 
 const FAVORITE_TEAMS_KEY = "time2kick.favoriteTeams";
 const PUBLIC_ASSET_BASE_URL = import.meta.env?.BASE_URL ?? "/";
+const APP_VERSION = "2026-06-13-pages-static-first";
 
 function publicAsset(path: string) {
   return `${PUBLIC_ASSET_BASE_URL}${path.replace(/^\/+/, "")}`;
@@ -326,6 +327,7 @@ function ScheduleApp({ snapshot }: { snapshot: TournamentSnapshotReady }) {
           )}
         </section>
       </section>
+      <span className="sr-only">Time2Kick version {APP_VERSION}</span>
     </main>
   );
 }
