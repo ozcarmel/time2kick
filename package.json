@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build",
     "build:pages": "tsc && vite build --base=/time2kick/",
+    "generate:snapshot": "node --experimental-strip-types scripts/generate-static-snapshot.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node scripts/check-no-placeholders.mjs && node --experimental-strip-types --test scripts/test-app-logic.mjs"
   },

@@ -654,8 +654,6 @@ function normalizeOpenFootballFixture(match: OpenFootballMatch, index: number): 
   const kickoffUtc = parseOpenFootballKickoff(match.date, match.time);
   const city = normalizeGroundCity(match.ground ?? "Host city TBC");
   const finalScore = match.score?.ft ?? finalScoreOverride(match.team1, match.team2, match.date);
-  const liveScore = finalScore ? undefined : liveScoreOverride(match.team1, match.team2, match.date);
-  const score = finalScore ?? liveScore;
 
   return {
     id: `openfootball-${index + 1}`,
@@ -671,10 +669,10 @@ function normalizeOpenFootballFixture(match: OpenFootballMatch, index: number): 
     city,
     country: cityToCountry(city),
     venue: venueFromGround(match.ground ?? city),
-    status: finalScore ? "final" : liveScore ? "live" : "scheduled",
+    status: finalScore ? "final" : "scheduled",
     score: {
-      home: score?.[0] ?? null,
-      away: score?.[1] ?? null,
+      home: finalScore?.[0] ?? null,
+      away: finalScore?.[1] ?? null,
     },
     odds: null,
   };
@@ -686,14 +684,6 @@ function finalScoreOverride(team1: string, team2: string, date: string): [number
   }
 
   if (date === "2026-06-13" && sameMatchup(team1, team2, "Qatar", "Switzerland")) {
-    return [1, 1];
-  }
-
-  return undefined;
-}
-
-function liveScoreOverride(team1: string, team2: string, date: string): [number, number] | undefined {
-  if (date === "2026-06-13" && sameMatchup(team1, team2, "Brazil", "Morocco")) {
     return [1, 1];
   }
 

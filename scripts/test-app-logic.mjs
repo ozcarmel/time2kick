@@ -218,7 +218,8 @@ test("loadTournamentSnapshot falls back to static snapshot when static hosting r
 
   const snapshot = await loadTournamentSnapshot(fetcher, 0, 0);
 
-  assert.deepEqual(requestedUrls, ["/api/worldcup/snapshot", "/worldcup-snapshot.json?v=2026-06-14-live-brazil-morocco-1-1"]);
+  assert.equal(requestedUrls[0], "/api/worldcup/snapshot");
+  assert.match(requestedUrls[1], /^\/worldcup-snapshot\.json\?v=\d+$/);
   assert.equal(snapshot.status, "ready");
   assert.equal(snapshot.providerLabel, "Static World Cup schedule");
 });
@@ -237,7 +238,7 @@ test("static snapshot includes Qatar vs Switzerland final result", async () => {
   assert.deepEqual(fixture.score, { home: 1, away: 1 });
 });
 
-test("static snapshot includes Brazil vs Morocco live score", async () => {
+test("static snapshot includes Brazil vs Morocco final score", async () => {
   const snapshot = JSON.parse(await readFile("public/worldcup-snapshot.json", "utf8"));
   const fixture = snapshot.fixtures.find(
     (item) =>
@@ -247,7 +248,7 @@ test("static snapshot includes Brazil vs Morocco live score", async () => {
   );
 
   assert.ok(fixture, "Brazil vs Morocco fixture should exist");
-  assert.equal(fixture.status, "live");
+  assert.equal(fixture.status, "final");
   assert.deepEqual(fixture.score, { home: 1, away: 1 });
 });
 
